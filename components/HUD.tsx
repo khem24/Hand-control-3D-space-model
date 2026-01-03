@@ -1,7 +1,6 @@
 
-import React, { useRef, useEffect } from 'react';
+import React from 'react';
 import { HandData, ParticleShape } from '../types';
-import { SHAPE_LABELS } from '../constants';
 import { Hand, MousePointer2 } from 'lucide-react';
 
 interface HUDProps {
@@ -54,7 +53,7 @@ const HUD: React.FC<HUDProps> = ({ handData, activeShape, videoRef, isCameraActi
           {!isCameraActive && (
             <div className="absolute inset-0 flex flex-col items-center justify-center text-white/20 gap-2">
               <MousePointer2 size={24} />
-              <span className="text-[10px] font-mono">STANDBY</span>
+              <span className="text-[10px] font-mono uppercase">Initializing...</span>
             </div>
           )}
           <video

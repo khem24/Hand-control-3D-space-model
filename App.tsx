@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { ParticleShape, HandData } from './types';
 import { HandTracker } from './services/HandTracker';
 import { audioEngine } from './services/AudioEngine';
@@ -7,7 +7,7 @@ import Visualizer from './components/Visualizer';
 import Controls from './components/Controls';
 import HUD from './components/HUD';
 import { GESTURE_CONFIDENCE_THRESHOLD } from './constants';
-import { CircleHelp, Play, Hand } from 'lucide-react';
+import { CircleHelp, Play, Hand as HandIcon } from 'lucide-react';
 
 const App: React.FC = () => {
   const [activeShape, setActiveShape] = useState<ParticleShape>(ParticleShape.SPHERE);
@@ -28,11 +28,16 @@ const App: React.FC = () => {
   const trackerRef = useRef<HandTracker | null>(null);
   const gestureHistory = useRef<number[]>([]);
 
-  const handleStart = async () => {
+  // Initialize Audio and UI state
+  const handleStart = () => {
     audioEngine.init();
     setIsStarted(true);
-    
-    if (videoRef.current) {
+  };
+
+  // Initialize Hand Tracker once the video element is rendered
+  useEffect(() => {
+    if (isStarted && videoRef.current && !trackerRef.current) {
+      console.log("Initializing HandTracker...");
       try {
         trackerRef.current = new HandTracker(videoRef.current, (data) => {
           setHandData(data);
@@ -41,10 +46,17 @@ const App: React.FC = () => {
         trackerRef.current.start();
         setIsCameraActive(true);
       } catch (err) {
-        console.warn("Camera failed, using mouse mode", err);
+        console.error("Failed to start HandTracker:", err);
       }
     }
-  };
+
+    return () => {
+      if (trackerRef.current) {
+        trackerRef.current.stop();
+        trackerRef.current = null;
+      }
+    };
+  }, [isStarted]);
 
   const processGesture = (count: number) => {
     gestureHistory.current.push(count);
@@ -52,14 +64,12 @@ const App: React.FC = () => {
       gestureHistory.current.shift();
     }
 
-    // Modal value detection
     const counts = gestureHistory.current.reduce((acc, val) => {
       acc[val] = (acc[val] || 0) + 1;
       return acc;
     }, {} as Record<number, number>);
 
-    // Cast 'c' to number to fix comparison operator error with 'unknown'
-    const dominant = Object.entries(counts).find(([_, c]) => (c as number) > GESTURE_CONFIDENCE_THRESHOLD * 0.8);
+    const dominant = Object.entries(counts).find(([_, c]) => (c as number) > GESTURE_CONFIDENCE_THRESHOLD * 0.7);
     
     if (dominant) {
       const c = parseInt(dominant[0]);
@@ -112,7 +122,6 @@ const App: React.FC = () => {
         </>
       )}
 
-      {/* Start Overlay */}
       {!isStarted && (
         <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-black/90 backdrop-blur-xl transition-all duration-1000 p-8">
           <div className="max-w-xl text-center">
@@ -139,7 +148,6 @@ const App: React.FC = () => {
         </div>
       )}
 
-      {/* Help Modal */}
       {showHelp && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
           <div className="bg-zinc-900 border border-white/10 p-8 rounded-3xl max-w-md w-full relative">
@@ -150,7 +158,7 @@ const App: React.FC = () => {
               ✕
             </button>
             <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-              <Hand size={20} className="text-cyan-400" />
+              <HandIcon size={20} className="text-cyan-400" />
               GESTURE RECOGNITION
             </h2>
             <div className="space-y-4 font-mono text-sm">
