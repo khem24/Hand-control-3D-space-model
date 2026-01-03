@@ -1,0 +1,7 @@
+{
+  "name": "khem's hand control",
+  "description": "An interactive 3D particle experience controlled by hand tracking and generative audio.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
